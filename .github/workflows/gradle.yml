@@ -25,3 +25,8 @@ jobs:
       run: chmod +x android_app/gradlew
     - name: Build with Gradle
       run: cd android_app; ./gradlew assembleDebug
+    - name: Upload APK
+      uses: actions/upload-artifact@v1
+      with:
+          name: apk
+          path: android_app/app/build/outputs/apk/debug/openScale-2.3.5-debug.apk 
