@@ -27,7 +27,7 @@ public static class StringUtils {
 
     public static string[] splitByWhitespace(final String value)
     {
-        return value.trim().split("[\f\s\t\n\r\u00A0\u2007\u202F\u000B\u001C\u001D\u001E\u001F’]+");
+        return value.trim().split("[\f\s\t\n\r\u00A0\u2007\u202F\u000B\u001C\u001D\u001E\u001F]+");
     }
 
     public static string generateStringWithRepeatingChar(final int count, final char value = ' ')
