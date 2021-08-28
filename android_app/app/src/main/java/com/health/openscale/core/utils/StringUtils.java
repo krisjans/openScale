@@ -17,31 +17,34 @@ package com.health.openscale.core.utils;
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>
  ***************************************************************************/
 
-public static class StringUtils {
-    public static final string EMTPY = "";
+public class StringUtils {
+    private static final String WHITESPACE_CHARS = " \f\t\n\r\u00A0\u2007\u202F\u000B\u001C\u001D\u001E\u001F";
 
-    public static bool isNullOrWhitespace(final String value)
-    {
+    public static final String EMPTY_STRING = "";
+
+    public static boolean isNullOrWhitespace(final String value) {
+        //TODO: replace .chars() as requires at least sdk level 24
         return null == value || value.isEmpty() || value.chars().allMatch(Character::isWhitespace);
     }
 
-    public static string[] splitByWhitespace(final String value)
-    {
-        return value.trim().split("[\f\s\t\n\r\u00A0\u2007\u202F\u000B\u001C\u001D\u001E\u001F]+");
+    public static String[] splitByWhitespace(final String value) {
+        return value.trim().split(String.format("[%s]+", WHITESPACE_CHARS));
     }
 
-    public static string generateStringWithRepeatingChar(final int count, final char value = ' ')
-    {
-        if(count < 1)
-            return EMTPY;
+    public static String generateStringWithRepeatingChar(final int count) {
+        return generateStringWithRepeatingChar(count, ' ');
+    }
 
-        var stringBuilder = new StringBuilder();
+    public static String generateStringWithRepeatingChar(final int count, final char value) {
+        if (count < 1)
+            return EMPTY_STRING;
 
-        for(var i = 0; i < count; i++)
-            stringBuilder += value;
+        StringBuilder stringBuilder = new StringBuilder();
+
+        for (int i = 0; i < count; i++)
+            stringBuilder.append(value);
 
         return stringBuilder.toString();
 //        return new String(new char[count]).replace('\0', value);
     }
-
 }

@@ -65,7 +65,7 @@ public class BluetoothBeurerBF600 extends BluetoothStandardWeightProfile {
     protected void writeInitials() {
         if (haveCharacteristic(SERVICE_BEURER_CUSTOM_BF600, CHARACTERISTIC_BEURER_BF850_INITIALS)) {
             BluetoothBytesParser parser = new BluetoothBytesParser();
-            String initials = getInitials(this.selectedUser.getUserName());
+            String initials = getInitials(this.selectedUser.getUserName(),3);
             Timber.d("Initials: " + initials);
             parser.setString(initials);
             writeBytes(SERVICE_BEURER_CUSTOM_BF600, CHARACTERISTIC_BEURER_BF850_INITIALS,

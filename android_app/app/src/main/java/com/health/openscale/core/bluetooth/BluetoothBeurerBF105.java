@@ -116,7 +116,7 @@ public class BluetoothBeurerBF105 extends BluetoothStandardWeightProfile {
     @Override
     protected void writeInitials() {
         BluetoothBytesParser parser = new BluetoothBytesParser();
-        String initials = getInitials(this.selectedUser.getUserName());
+        String initials = getInitials(this.selectedUser.getUserName(), 3);
         Timber.d("Initials: " + initials);
         parser.setString(initials);
         writeBytes(SERVICE_BF105_CUSTOM, CHARACTERISTIC_INITIALS,

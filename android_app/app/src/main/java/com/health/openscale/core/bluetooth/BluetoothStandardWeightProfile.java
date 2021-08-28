@@ -36,7 +36,6 @@ import com.health.openscale.core.utils.Converters;
 import com.health.openscale.core.utils.StringUtils;
 import com.welie.blessed.BluetoothBytesParser;
 
-import java.lang.StringBuilder;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -808,7 +807,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
 
     protected String getInitials(final String fullName, final int size) {
         if (0 == size)
-            return StringUtils.EMPTY;
+            return StringUtils.EMPTY_STRING;
 
         if (StringUtils.isNullOrWhitespace(fullName))
             return getDefaultInitials(size);
@@ -817,46 +816,46 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     }
 
     private String getDefaultInitials(final int size) {
-        var userId = this.selectedUser.getId();
-        var userIndex = String.valueOf(getUserScaleIndex(userId));
+        int userId = this.selectedUser.getId();
+        String userIndex = String.valueOf(getUserScaleIndex(userId));
 
-        if (StringUtils.EMPTY == userIndex)
+        if (StringUtils.EMPTY_STRING == userIndex)
             return StringUtils.generateStringWithRepeatingChar(size);
 
         if (1 == size)
-            return userIndex.charAt(0);
+            return String.valueOf(userIndex.charAt(0));
 
-        var stringBuilder = new StringBuilder();
+        StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.add('P');
+        stringBuilder.append('P');
 
-        for (var i = 0; i < size - 1; i++) {
-            var charToAdd = ' ';
+        for (int i = 0; i < size - 1; i++) {
+            char charToAdd = ' ';
 
-            if (userInde.length > i)
-                charToAdd = userIndex[i];
+            if (userIndex.length() > i)
+                charToAdd = userIndex.charAt(i);
 
-            stringBuilder.add(charToAdd);
+            stringBuilder.append(charToAdd);
         }
 
         return stringBuilder.toString();
     }
 
     private String buildInitialsStringFrom(final String fullName, final int size) {
-        var names = StringUtils.splitByWhitespace(fullName);
+        String[] names = StringUtils.splitByWhitespace(fullName);
 
         if (0 == names.length)
             return StringUtils.generateStringWithRepeatingChar(size);
 
-        var initialsBuilder = new StringBuilder();
+        StringBuilder initialsBuilder = new StringBuilder();
 
-        for (var i = 0; i < size; i++) {
-            var charToAdd = ' ';
+        for (int i = 0; i < size; i++) {
+            char charToAdd = ' ';
 
             if (names.length > i && false == names[i].isEmpty())
                 charToAdd = names[i].charAt(0);
 
-            initialsBuilder.add(charToAdd);
+            initialsBuilder.append(charToAdd);
         }
 
         return initialsBuilder.toString();
