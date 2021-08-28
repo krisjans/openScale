@@ -843,9 +843,9 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     }
 
     private String buildInitialsStringFrom(final String fullName, final int size) {
-        var name = StringUtils.splitByWhitespace(fullName);
+        var names = StringUtils.splitByWhitespace(fullName);
 
-        if (0 == name.length)
+        if (0 == names.length)
             return StringUtils.generateStringWithRepeatingChar(size);
 
         var initialsBuilder = new StringBuilder();
@@ -853,8 +853,8 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         for (var i = 0; i < size; i++) {
             var charToAdd = ' ';
 
-            if (name.length > i && 0 != name[i].length)
-                charToAdd = name[i].charAt(0);
+            if (names.length > i && false == names[i].isEmpty())
+                charToAdd = names[i].charAt(0);
 
             initialsBuilder.add(charToAdd);
         }
