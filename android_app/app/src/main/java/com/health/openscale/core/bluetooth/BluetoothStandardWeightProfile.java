@@ -33,8 +33,10 @@ import com.health.openscale.core.OpenScale;
 import com.health.openscale.core.datatypes.ScaleMeasurement;
 import com.health.openscale.core.datatypes.ScaleUser;
 import com.health.openscale.core.utils.Converters;
+import com.health.openscale.core.utils.StringUtils;
 import com.welie.blessed.BluetoothBytesParser;
 
+import java.lang.StringBuilder;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -49,19 +51,19 @@ import timber.log.Timber;
 public class BluetoothStandardWeightProfile extends BluetoothCommunication {
 
     // UDS control point codes
-    protected static final byte UDS_CP_REGISTER_NEW_USER              = 0x01;
-    protected static final byte UDS_CP_CONSENT                        = 0x02;
-    protected static final byte UDS_CP_DELETE_USER_DATA               = 0x03;
-    protected static final byte UDS_CP_LIST_ALL_USERS                 = 0x04;
-    protected static final byte UDS_CP_DELETE_USERS                   = 0x05;
-    protected static final byte UDS_CP_RESPONSE                       = 0x20;
+    protected static final byte UDS_CP_REGISTER_NEW_USER = 0x01;
+    protected static final byte UDS_CP_CONSENT = 0x02;
+    protected static final byte UDS_CP_DELETE_USER_DATA = 0x03;
+    protected static final byte UDS_CP_LIST_ALL_USERS = 0x04;
+    protected static final byte UDS_CP_DELETE_USERS = 0x05;
+    protected static final byte UDS_CP_RESPONSE = 0x20;
 
     // UDS response codes
-    protected static final byte UDS_CP_RESP_VALUE_SUCCESS             = 0x01;
-    protected static final byte UDS_CP_RESP_OP_CODE_NOT_SUPPORTED     = 0x02;
-    protected static final byte UDS_CP_RESP_INVALID_PARAMETER         = 0x03;
-    protected static final byte UDS_CP_RESP_OPERATION_FAILED          = 0x04;
-    protected static final byte UDS_CP_RESP_USER_NOT_AUTHORIZED       = 0x05;
+    protected static final byte UDS_CP_RESP_VALUE_SUCCESS = 0x01;
+    protected static final byte UDS_CP_RESP_OP_CODE_NOT_SUPPORTED = 0x02;
+    protected static final byte UDS_CP_RESP_INVALID_PARAMETER = 0x03;
+    protected static final byte UDS_CP_RESP_OPERATION_FAILED = 0x04;
+    protected static final byte UDS_CP_RESP_USER_NOT_AUTHORIZED = 0x05;
 
     SharedPreferences prefs;
     protected boolean registerNewUser;
@@ -110,7 +112,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     protected boolean onNextStep(int stepNr) {
 
         if (stepNr > SM_STEPS.MAX_STEP.ordinal()) {
-            Timber.d( "WARNING: stepNr == " + stepNr + " outside range, must be from 0 to " + SM_STEPS.MAX_STEP.ordinal());
+            Timber.d("WARNING: stepNr == " + stepNr + " outside range, must be from 0 to " + SM_STEPS.MAX_STEP.ordinal());
             stepNr = SM_STEPS.MAX_STEP.ordinal();
         }
         SM_STEPS step = SM_STEPS.values()[stepNr];
@@ -150,8 +152,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
                 // Turn on notifications for Battery Service
                 if (setNotificationOn(BluetoothGattUuid.SERVICE_BATTERY_LEVEL, BluetoothGattUuid.CHARACTERISTIC_BATTERY_LEVEL)) {
                     haveBatteryService = true;
-                }
-                else {
+                } else {
                     haveBatteryService = false;
                 }
                 break;
@@ -219,42 +220,35 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     public void onBluetoothNotify(UUID characteristic, byte[] value) {
         BluetoothBytesParser parser = new BluetoothBytesParser(value);
 
-        if(characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_CURRENT_TIME)) {
+        if (characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_CURRENT_TIME)) {
             Date currentTime = parser.getDateTime();
             Timber.d(String.format("Received device time: %s", currentTime));
-        }
-        else if(characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_WEIGHT_MEASUREMENT)) {
+        } else if (characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_WEIGHT_MEASUREMENT)) {
             handleWeightMeasurement(value);
-        }
-        else if(characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_BODY_COMPOSITION_MEASUREMENT)) {
+        } else if (characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_BODY_COMPOSITION_MEASUREMENT)) {
             handleBodyCompositionMeasurement(value);
-        }
-        else if(characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_BATTERY_LEVEL)) {
+        } else if (characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_BATTERY_LEVEL)) {
             int batteryLevel = parser.getIntValue(FORMAT_UINT8);
             Timber.d(String.format("Received battery level %d%%", batteryLevel));
             if (batteryLevel <= 10) {
                 sendMessage(R.string.info_scale_low_battery, batteryLevel);
             }
-        }
-        else if(characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_MANUFACTURER_NAME_STRING)) {
+        } else if (characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_MANUFACTURER_NAME_STRING)) {
             String manufacturer = parser.getStringValue(0);
             Timber.d(String.format("Received manufacturer: %s", manufacturer));
-        }
-        else if(characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_MODEL_NUMBER_STRING)) {
+        } else if (characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_MODEL_NUMBER_STRING)) {
             String modelNumber = parser.getStringValue(0);
             Timber.d(String.format("Received modelnumber: %s", modelNumber));
-        }
-        else if(characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_USER_CONTROL_POINT)) {
+        } else if (characteristic.equals(BluetoothGattUuid.CHARACTERISTIC_USER_CONTROL_POINT)) {
             handleUserControlPointNotify(value);
-        }
-        else {
+        } else {
             Timber.d(String.format("Notification from unhandled characteristic: %s, value: [%s]",
                     characteristic.toString(), byteInHex(value)));
         }
     }
 
     protected void handleUserControlPointNotify(byte[] value) {
-        if(value[0]==UDS_CP_RESPONSE) {
+        if (value[0] == UDS_CP_RESPONSE) {
             switch (value[1]) {
                 case UDS_CP_LIST_ALL_USERS:
                     Timber.d("UDS_CP_LIST_ALL_USERS value [" + byteInHex(value) + "]");
@@ -283,8 +277,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
                     } else if (value[2] == UDS_CP_RESP_USER_NOT_AUTHORIZED) {
                         Timber.e("UDS_CP_CONSENT: Not authorized");
                         enterScaleUserConsentUi(this.selectedUser.getId(), getUserScaleIndex(this.selectedUser.getId()));
-                    }
-                    else {
+                    } else {
                         Timber.e("UDS_CP_CONSENT: unhandled, code: " + value[2]);
                     }
                     break;
@@ -293,8 +286,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
                             + value[1] + " value [" + byteInHex(value) + "]");
                     break;
             }
-        }
-        else {
+        } else {
             Timber.d("CHARACTERISTIC_USER_CONTROL_POINT: non-response code " + value[0]
                     + " value [" + byteInHex(value) + "]");
         }
@@ -324,16 +316,16 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
 
         // Get weight
         float weightValue = parser.getIntValue(BluetoothBytesParser.FORMAT_UINT16) * weightMultiplier;
-        Timber.d(prefix+ "weight: " + weightValue);
+        Timber.d(prefix + "weight: " + weightValue);
         scaleMeasurement.setWeight(weightValue);
 
-        if(timestampPresent) {
+        if (timestampPresent) {
             Date timestamp = parser.getDateTime();
             Timber.d(prefix + "timestamp: " + timestamp.toString());
             scaleMeasurement.setDateTime(timestamp);
         }
 
-        if(userIDPresent) {
+        if (userIDPresent) {
             int scaleUserIndex = parser.getIntValue(BluetoothBytesParser.FORMAT_UINT8);
             int userID = getUserIdFromScaleIndex(scaleUserIndex);
             Timber.d(String.format(prefix + "scale user index: %d (app user id: %d)", scaleUserIndex, userID));
@@ -352,7 +344,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
             }
         }
 
-        if(bmiAndHeightPresent) {
+        if (bmiAndHeightPresent) {
             float BMI = parser.getIntValue(BluetoothBytesParser.FORMAT_UINT16) * 0.1f;
             Timber.d(prefix + "BMI: " + BMI);
             float heightInMeters = parser.getIntValue(BluetoothBytesParser.FORMAT_UINT16) * 0.001f;
@@ -478,8 +470,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
             weightValue = parser.getIntValue(BluetoothBytesParser.FORMAT_UINT16) * massMultiplier;
             Timber.d(prefix + "weightValue: " + weightValue);
             scaleMeasurement.setWeight(weightValue);
-        }
-        else {
+        } else {
             if (previousMeasurement != null) {
                 weightValue = previousMeasurement.getWeight();
                 if (weightValue > 0) {
@@ -530,24 +521,20 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         if (previousMeasurement == null) {
             if (newMeasurement.getUserId() == -1) {
                 addScaleMeasurement(newMeasurement);
-            }
-            else {
+            } else {
                 previousMeasurement = newMeasurement;
             }
-        }
-        else {
+        } else {
             if ((newMeasurement.getUserId() == -1) && (previousMeasurement.getUserId() != -1)) {
                 previousMeasurement.merge(newMeasurement);
                 addScaleMeasurement(previousMeasurement);
                 previousMeasurement = null;
-            }
-            else {
+            } else {
                 addScaleMeasurement(previousMeasurement);
                 if (newMeasurement.getUserId() == -1) {
                     addScaleMeasurement(newMeasurement);
                     previousMeasurement = null;
-                }
-                else {
+                } else {
                     previousMeasurement = newMeasurement;
                 }
             }
@@ -572,18 +559,18 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     }
 
     protected void registerUser(int consentCode) {
-        BluetoothBytesParser parser = new BluetoothBytesParser(new byte[]{0,0,0});
-        parser.setIntValue(UDS_CP_REGISTER_NEW_USER, FORMAT_UINT8,0);
-        parser.setIntValue(consentCode, FORMAT_UINT16,1);
+        BluetoothBytesParser parser = new BluetoothBytesParser(new byte[]{0, 0, 0});
+        parser.setIntValue(UDS_CP_REGISTER_NEW_USER, FORMAT_UINT8, 0);
+        parser.setIntValue(consentCode, FORMAT_UINT16, 1);
         Timber.d(String.format("registerUser consentCode: %d", consentCode));
         writeBytes(BluetoothGattUuid.SERVICE_USER_DATA, BluetoothGattUuid.CHARACTERISTIC_USER_CONTROL_POINT, parser.getValue());
     }
 
     protected void setUser(int userIndex, int consentCode) {
-        BluetoothBytesParser parser = new BluetoothBytesParser(new byte[]{0,0,0,0});
-        parser.setIntValue(UDS_CP_CONSENT,FORMAT_UINT8,0);
-        parser.setIntValue(userIndex, FORMAT_UINT8,1);
-        parser.setIntValue(consentCode, FORMAT_UINT16,2);
+        BluetoothBytesParser parser = new BluetoothBytesParser(new byte[]{0, 0, 0, 0});
+        parser.setIntValue(UDS_CP_CONSENT, FORMAT_UINT8, 0);
+        parser.setIntValue(userIndex, FORMAT_UINT8, 1);
+        parser.setIntValue(consentCode, FORMAT_UINT16, 2);
         Timber.d(String.format("setUser userIndex: %d, consentCode: %d", userIndex, consentCode));
         writeBytes(BluetoothGattUuid.SERVICE_USER_DATA, BluetoothGattUuid.CHARACTERISTIC_USER_CONTROL_POINT, parser.getValue());
     }
@@ -601,7 +588,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     }
 
     protected void deleteUser() {
-        BluetoothBytesParser parser = new BluetoothBytesParser(new byte[] { 0 });
+        BluetoothBytesParser parser = new BluetoothBytesParser(new byte[]{0});
         parser.setIntValue(UDS_CP_DELETE_USER_DATA, FORMAT_UINT8, 0);
         writeBytes(BluetoothGattUuid.SERVICE_USER_DATA, BluetoothGattUuid.CHARACTERISTIC_USER_CONTROL_POINT,
                 parser.getValue());
@@ -709,13 +696,11 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         Timber.d("Select scale user index from UI: user id: " + appUserId + ", scale user index: " + scaleUserIndex);
         if (scaleUserIndex == -1) {
             reconnectOrSetSmState(SM_STEPS.REGISTER_NEW_SCALE_USER, SM_STEPS.REGISTER_NEW_SCALE_USER, uiHandler);
-        }
-        else {
+        } else {
             storeUserScaleIndex(appUserId, scaleUserIndex);
             if (getUserScaleConsent(appUserId) == -1) {
                 enterScaleUserConsentUi(appUserId, scaleUserIndex);
-            }
-            else {
+            } else {
                 reconnectOrSetSmState(SM_STEPS.SELECT_SCALE_USER, SM_STEPS.REQUEST_VENDOR_SPECIFIC_USER_LIST, uiHandler);
             }
         }
@@ -727,73 +712,71 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         storeUserScaleConsentCode(appUserId, scaleUserConsent);
         if (scaleUserConsent == -1) {
             reconnectOrSetSmState(SM_STEPS.REQUEST_VENDOR_SPECIFIC_USER_LIST, SM_STEPS.REQUEST_VENDOR_SPECIFIC_USER_LIST, uiHandler);
-        }
-        else {
+        } else {
             reconnectOrSetSmState(SM_STEPS.SELECT_SCALE_USER, SM_STEPS.REQUEST_VENDOR_SPECIFIC_USER_LIST, uiHandler);
         }
     }
 
     protected void handleVendorSpecificUserList(byte[] value) {
-            Timber.d(String.format("Got user data: <%s>", byteInHex(value)));
-            BluetoothBytesParser parser = new BluetoothBytesParser(value);
-            int userListStatus = parser.getIntValue(FORMAT_UINT8);
-            if (userListStatus == 2) {
-                Timber.d("scale have no users!");
+        Timber.d(String.format("Got user data: <%s>", byteInHex(value)));
+        BluetoothBytesParser parser = new BluetoothBytesParser(value);
+        int userListStatus = parser.getIntValue(FORMAT_UINT8);
+        if (userListStatus == 2) {
+            Timber.d("scale have no users!");
+            storeUserScaleConsentCode(selectedUser.getId(), -1);
+            storeUserScaleIndex(selectedUser.getId(), -1);
+            jumpNextToStepNr(SM_STEPS.REGISTER_NEW_SCALE_USER.ordinal());
+            resumeMachineState();
+            return;
+        } else if (userListStatus == 1) {
+            for (int i = 0; i < scaleUserList.size(); i++) {
+                if (i == 0) {
+                    Timber.d("scale user list:");
+                }
+                Timber.d("\n" + (i + 1) + ". " + scaleUserList.get(i));
+            }
+            if ((scaleUserList.size() == 0)) {
                 storeUserScaleConsentCode(selectedUser.getId(), -1);
                 storeUserScaleIndex(selectedUser.getId(), -1);
                 jumpNextToStepNr(SM_STEPS.REGISTER_NEW_SCALE_USER.ordinal());
                 resumeMachineState();
                 return;
             }
-            else if (userListStatus == 1) {
-                for (int i = 0; i < scaleUserList.size(); i++) {
-                    if (i == 0) {
-                        Timber.d("scale user list:");
-                    }
-                    Timber.d("\n" + (i + 1) + ". " + scaleUserList.get(i));
-                }
-                if ((scaleUserList.size() == 0)) {
-                    storeUserScaleConsentCode(selectedUser.getId(), -1);
-                    storeUserScaleIndex(selectedUser.getId(), -1);
-                    jumpNextToStepNr(SM_STEPS.REGISTER_NEW_SCALE_USER.ordinal());
-                    resumeMachineState();
-                    return;
-                }
-                if (getUserScaleIndex(selectedUser.getId()) == -1 || getUserScaleConsent(selectedUser.getId()) == -1)  {
-                    chooseExistingScaleUser(scaleUserList);
-                    return;
-                }
-                resumeMachineState();
+            if (getUserScaleIndex(selectedUser.getId()) == -1 || getUserScaleConsent(selectedUser.getId()) == -1) {
+                chooseExistingScaleUser(scaleUserList);
                 return;
             }
-            int index = parser.getIntValue(FORMAT_UINT8);
-            String initials = parser.getStringValue();
-            int end = 3 > initials.length() ? initials.length() : 3;
-            initials = initials.substring(0, end);
-            if (initials.length() == 3) {
-                if (initials.charAt(0) == 0xff && initials.charAt(1) == 0xff && initials.charAt(2) == 0xff) {
-                    initials = "";
-                }
+            resumeMachineState();
+            return;
+        }
+        int index = parser.getIntValue(FORMAT_UINT8);
+        String initials = parser.getStringValue();
+        int end = 3 > initials.length() ? initials.length() : 3;
+        initials = initials.substring(0, end);
+        if (initials.length() == 3) {
+            if (initials.charAt(0) == 0xff && initials.charAt(1) == 0xff && initials.charAt(2) == 0xff) {
+                initials = "";
             }
-            parser.setOffset(5);
-            int year = parser.getIntValue(FORMAT_UINT16);
-            int month = parser.getIntValue(FORMAT_UINT8);
-            int day = parser.getIntValue(FORMAT_UINT8);
-            int height = parser.getIntValue(FORMAT_UINT8);
-            int gender = parser.getIntValue(FORMAT_UINT8);
-            int activityLevel = parser.getIntValue(FORMAT_UINT8);
-            GregorianCalendar calendar = new GregorianCalendar(year, month - 1, day);
-            ScaleUser scaleUser = new ScaleUser();
-            scaleUser.setUserName(initials);
-            scaleUser.setBirthday(calendar.getTime());
-            scaleUser.setBodyHeight(height);
-            scaleUser.setGender(Converters.Gender.fromInt(gender));
-            scaleUser.setActivityLevel(Converters.ActivityLevel.fromInt(activityLevel - 1));
-            scaleUser.setId(index);
-            scaleUserList.add(scaleUser);
-            if (scaleUserList.size() == VENDOR_SPECIFIC_MAX_USERS) {
-                chooseExistingScaleUser(scaleUserList);
-            }
+        }
+        parser.setOffset(5);
+        int year = parser.getIntValue(FORMAT_UINT16);
+        int month = parser.getIntValue(FORMAT_UINT8);
+        int day = parser.getIntValue(FORMAT_UINT8);
+        int height = parser.getIntValue(FORMAT_UINT8);
+        int gender = parser.getIntValue(FORMAT_UINT8);
+        int activityLevel = parser.getIntValue(FORMAT_UINT8);
+        GregorianCalendar calendar = new GregorianCalendar(year, month - 1, day);
+        ScaleUser scaleUser = new ScaleUser();
+        scaleUser.setUserName(initials);
+        scaleUser.setBirthday(calendar.getTime());
+        scaleUser.setBodyHeight(height);
+        scaleUser.setGender(Converters.Gender.fromInt(gender));
+        scaleUser.setActivityLevel(Converters.ActivityLevel.fromInt(activityLevel - 1));
+        scaleUser.setId(index);
+        scaleUserList.add(scaleUser);
+        if (scaleUserList.size() == VENDOR_SPECIFIC_MAX_USERS) {
+            chooseExistingScaleUser(scaleUserList);
+        }
     }
 
     protected void chooseExistingScaleUser(Vector<ScaleUser> userList) {
@@ -823,29 +806,59 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         chooseScaleUserUi(choices);
     }
 
-    protected String getInitials(String fullName) {
-        if (fullName == null || fullName.isEmpty() || fullName.chars().allMatch(Character::isWhitespace)) {
-            return getDefaultInitials();
-        }
-        return buildInitialsStringFrom(fullName).toUpperCase();
+    protected String getInitials(final String fullName, final int size) {
+        if (0 == size)
+            return StringUtils.EMPTY;
+
+        if (StringUtils.isNullOrWhitespace(fullName))
+            return getDefaultInitials(size);
+
+        return buildInitialsStringFrom(fullName, size).toUpperCase();
     }
 
-    private String getDefaultInitials() {
-        int userId = this.selectedUser.getId();
-        int userIndex = getUserScaleIndex(userId);
-        return "P" + userIndex + " ";
+    private String getDefaultInitials(final int size) {
+        var userId = this.selectedUser.getId();
+        var userIndex = String.valueOf(getUserScaleIndex(userId));
+
+        if (StringUtils.EMPTY == userIndex)
+            return StringUtils.generateStringWithRepeatingChar(size);
+
+        if (1 == size)
+            return userIndex.charAt(0);
+
+        var stringBuilder = new StringBuilder();
+
+        stringBuilder.add('P');
+
+        for (var i = 0; i < size - 1; i++) {
+            var charToAdd = ' ';
+
+            if (userInde.length > i)
+                charToAdd = userIndex[i];
+
+            stringBuilder.add(charToAdd);
+        }
+
+        return stringBuilder.toString();
     }
 
-    private String buildInitialsStringFrom(String fullName) {
-        String[] name = fullName.trim().split(" +");
-        String initials = "";
-        for (int i = 0; i < 3; i++) {
-            if (i < name.length && name[i] != "") {
-                initials += name[i].charAt(0);
-            } else {
-                initials += " ";
-            }
+    private String buildInitialsStringFrom(final String fullName, final int size) {
+        var name = StringUtils.splitByWhitespace(fullName);
+
+        if (0 == name.length)
+            return StringUtils.generateStringWithRepeatingChar(size);
+
+        var initialsBuilder = new StringBuilder();
+
+        for (var i = 0; i < size; i++) {
+            var charToAdd = ' ';
+
+            if (name.length > i && 0 != name[i].length)
+                charToAdd = name[i].charAt(0);
+
+            initialsBuilder.add(charToAdd);
         }
-        return initials;
+
+        return initialsBuilder.toString();
     }
 }
