@@ -836,30 +836,25 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     }
 
     private String getDefaultInitials(final int size) {
-        if(1 > size)
+        if (1 > size)
             return StringUtils.EMPTY;
 
         int userId = this.selectedUser.getId();
         String userIndex = String.valueOf(getUserScaleIndex(userId));
 
-        if (userIndex.equals(StringUtils.EMPTY))
-            return StringUtils.repeat(' ', size);
-
-        if (1 == size)
-            return String.valueOf(userIndex.charAt(0));
-
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append('P');
+        if (userIndex.length() < size)
+            stringBuilder.append('P');
 
-        for (int i = 0; i < size - 1; i++) {
-            char charToAdd = ' ';
+        stringBuilder.append(userIndex);
 
-            if (userIndex.length() > i)
-                charToAdd = userIndex.charAt(i);
+        final int padding = size - stringBuilder.length();
 
-            stringBuilder.append(charToAdd);
-        }
+        if(0 < padding)
+            stringBuilder.append(StringUtils.repeat(StringUtils.SPACE, padding));
+
+        stringBuilder.setLength(size);
 
         return stringBuilder.toString();
     }
@@ -868,18 +863,20 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         String[] names = StringUtils.split(fullName);
 
         if (null == names || 0 == names.length)
-            return StringUtils.repeat(' ', size);
+            return StringUtils.repeat(StringUtils.SPACE, size);
 
         StringBuilder initialsBuilder = new StringBuilder();
 
-        for (int i = 0; i < size; i++) {
-            char charToAdd = ' ';
+        for (int i = 0; i < size && i < names.length; i++)
+            if (false == StringUtils.isAnyBlank(names[i]))
+                initialsBuilder.append(names[i].charAt(0));
 
-            if (names.length > i && false == names[i].isEmpty())
-                charToAdd = names[i].charAt(0);
+        final int padding = size - initialsBuilder.length();
 
-            initialsBuilder.append(charToAdd);
-        }
+        if(0 < padding)
+            initialsBuilder.append(StringUtils.repeat(StringUtils.SPACE, padding));
+
+        initialsBuilder.setLength(size);
 
         return initialsBuilder.toString();
     }
