@@ -33,8 +33,9 @@ import com.health.openscale.core.OpenScale;
 import com.health.openscale.core.datatypes.ScaleMeasurement;
 import com.health.openscale.core.datatypes.ScaleUser;
 import com.health.openscale.core.utils.Converters;
-import com.health.openscale.core.utils.StringUtils;
 import com.welie.blessed.BluetoothBytesParser;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.text.DateFormat;
 import java.util.Arrays;
@@ -826,20 +827,23 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
 
     protected String getInitials(final String fullName, final int size) {
         if (0 == size)
-            return StringUtils.EMPTY_STRING;
+            return StringUtils.EMPTY;
 
-        if (StringUtils.isNullOrWhitespace(fullName))
+        if (StringUtils.isAnyBlank(fullName))
             return getDefaultInitials(size);
 
         return buildInitialsStringFrom(fullName, size).toUpperCase();
     }
 
     private String getDefaultInitials(final int size) {
+        if(1 > size)
+            return StringUtils.EMPTY;
+
         int userId = this.selectedUser.getId();
         String userIndex = String.valueOf(getUserScaleIndex(userId));
 
-        if (userIndex.equals(StringUtils.EMPTY_STRING))
-            return StringUtils.generateStringWithRepeatingChar(size);
+        if (userIndex.equals(StringUtils.EMPTY))
+            return StringUtils.repeat(' ', size);
 
         if (1 == size)
             return String.valueOf(userIndex.charAt(0));
@@ -861,10 +865,10 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     }
 
     private String buildInitialsStringFrom(final String fullName, final int size) {
-        String[] names = StringUtils.splitByWhitespace(fullName);
+        String[] names = StringUtils.split(fullName);
 
         if (null == names || 0 == names.length)
-            return StringUtils.generateStringWithRepeatingChar(size);
+            return StringUtils.repeat(' ', size);
 
         StringBuilder initialsBuilder = new StringBuilder();
 
