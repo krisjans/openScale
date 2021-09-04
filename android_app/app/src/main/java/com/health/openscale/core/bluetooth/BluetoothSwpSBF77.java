@@ -36,6 +36,7 @@ public class BluetoothSwpSBF77 extends BluetoothStandardWeightProfile {
     private static final UUID CHARACTERISTIC_SBF77_INITIALS = BluetoothGattUuid.fromShortCode(0x0002);
     private static final UUID CHARACTERISTIC_SBF77_ACTIVITY_LEVEL = BluetoothGattUuid.fromShortCode(0x0004);
     private static final UUID CHARACTERISTIC_SBF77_TAKE_MEASUREMENT = BluetoothGattUuid.fromShortCode(0x0006);
+    private static final int INITIALS_SIZE = 3;
 
     private String deviceName;
 
@@ -92,7 +93,7 @@ public class BluetoothSwpSBF77 extends BluetoothStandardWeightProfile {
     protected void writeInitials() {
         if (haveCharacteristic(SERVICE_CUSTOM_SBF77, CHARACTERISTIC_SBF77_INITIALS)) {
             BluetoothBytesParser parser = new BluetoothBytesParser();
-            String initials = getInitials(this.selectedUser.getUserName());
+            String initials = getInitials(this.selectedUser.getUserName(), INITIALS_SIZE);
             Timber.d("Initials: " + initials);
             parser.setString(initials);
             writeBytes(SERVICE_CUSTOM_SBF77, CHARACTERISTIC_SBF77_INITIALS,

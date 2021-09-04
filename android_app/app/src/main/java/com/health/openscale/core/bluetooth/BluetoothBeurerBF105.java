@@ -50,6 +50,7 @@ public class BluetoothBeurerBF105 extends BluetoothStandardWeightProfile {
     private static final UUID CHARACTERISTIC_BEURER_III = BluetoothGattUuid.fromShortCode(0x000a);
     private static final UUID CHARACTERISTIC_IMG_IDENTIFY = BluetoothGattUuid.fromShortCode(0xffc1);
     private static final UUID CHARACTERISTIC_IMG_BLOCK = BluetoothGattUuid.fromShortCode(0xffc2);
+    private static final int INITIALS_SIZE = 3;
 
 
     public BluetoothBeurerBF105(Context context) {
@@ -116,7 +117,7 @@ public class BluetoothBeurerBF105 extends BluetoothStandardWeightProfile {
     @Override
     protected void writeInitials() {
         BluetoothBytesParser parser = new BluetoothBytesParser();
-        String initials = getInitials(this.selectedUser.getUserName());
+        String initials = getInitials(this.selectedUser.getUserName(), INITIALS_SIZE);
         Timber.d("Initials: " + initials);
         parser.setString(initials);
         writeBytes(SERVICE_BF105_CUSTOM, CHARACTERISTIC_INITIALS,

@@ -33,6 +33,7 @@ import com.health.openscale.core.OpenScale;
 import com.health.openscale.core.datatypes.ScaleMeasurement;
 import com.health.openscale.core.datatypes.ScaleUser;
 import com.health.openscale.core.utils.Converters;
+import com.health.openscale.core.utils.StringUtils;
 import com.welie.blessed.BluetoothBytesParser;
 
 import java.text.DateFormat;
@@ -823,29 +824,59 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         chooseScaleUserUi(choices);
     }
 
-    protected String getInitials(String fullName) {
-        if (fullName == null || fullName.isEmpty() || fullName.chars().allMatch(Character::isWhitespace)) {
-            return getDefaultInitials();
-        }
-        return buildInitialsStringFrom(fullName).toUpperCase();
+    protected String getInitials(final String fullName, final int size) {
+        if (0 == size)
+            return StringUtils.EMPTY_STRING;
+
+        if (StringUtils.isNullOrWhitespace(fullName))
+            return getDefaultInitials(size);
+
+        return buildInitialsStringFrom(fullName, size).toUpperCase();
     }
 
-    private String getDefaultInitials() {
+    private String getDefaultInitials(final int size) {
         int userId = this.selectedUser.getId();
-        int userIndex = getUserScaleIndex(userId);
-        return "P" + userIndex + " ";
+        String userIndex = String.valueOf(getUserScaleIndex(userId));
+
+        if (userIndex.equals(StringUtils.EMPTY_STRING))
+            return StringUtils.generateStringWithRepeatingChar(size);
+
+        if (1 == size)
+            return String.valueOf(userIndex.charAt(0));
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append('P');
+
+        for (int i = 0; i < size - 1; i++) {
+            char charToAdd = ' ';
+
+            if (userIndex.length() > i)
+                charToAdd = userIndex.charAt(i);
+
+            stringBuilder.append(charToAdd);
+        }
+
+        return stringBuilder.toString();
     }
 
-    private String buildInitialsStringFrom(String fullName) {
-        String[] name = fullName.trim().split(" +");
-        String initials = "";
-        for (int i = 0; i < 3; i++) {
-            if (i < name.length && name[i] != "") {
-                initials += name[i].charAt(0);
-            } else {
-                initials += " ";
-            }
+    private String buildInitialsStringFrom(final String fullName, final int size) {
+        String[] names = StringUtils.splitByWhitespace(fullName);
+
+        if (null == names || 0 == names.length)
+            return StringUtils.generateStringWithRepeatingChar(size);
+
+        StringBuilder initialsBuilder = new StringBuilder();
+
+        for (int i = 0; i < size; i++) {
+            char charToAdd = ' ';
+
+            if (names.length > i && false == names[i].isEmpty())
+                charToAdd = names[i].charAt(0);
+
+            initialsBuilder.append(charToAdd);
         }
-        return initials;
+
+        return initialsBuilder.toString();
     }
 }
