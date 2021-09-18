@@ -829,7 +829,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         if (0 == size)
             return StringUtils.EMPTY;
 
-        if (StringUtils.isAnyBlank(fullName))
+        if (StringUtils.isBlank(fullName))
             return getDefaultInitials(size);
 
         return buildInitialsStringFrom(fullName, size).toUpperCase();
@@ -849,10 +849,11 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
 
         stringBuilder.append(userIndex);
 
-        final int padding = size - stringBuilder.length();
-
-        if(0 < padding)
+        if(size > stringBuilder.length())
+        {
+            final int padding = size - stringBuilder.length();
             stringBuilder.append(StringUtils.repeat(StringUtils.SPACE, padding));
+        }
 
         stringBuilder.setLength(size);
 
@@ -868,7 +869,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         StringBuilder initialsBuilder = new StringBuilder();
 
         for (int i = 0; i < size && i < names.length; i++)
-            if (false == StringUtils.isAnyBlank(names[i]))
+            if (false == StringUtils.isBlank(names[i]))
                 initialsBuilder.append(names[i].charAt(0));
 
         final int padding = size - initialsBuilder.length();
