@@ -48,7 +48,7 @@ import java.util.Vector;
 
 import timber.log.Timber;
 
-public class BluetoothStandardWeightProfile extends BluetoothCommunication {
+public abstract class BluetoothStandardWeightProfile extends BluetoothCommunication {
 
     // UDS control point codes
     protected static final byte UDS_CP_REGISTER_NEW_USER              = 0x01;
@@ -71,7 +71,6 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     ScaleMeasurement previousMeasurement;
     protected boolean haveBatteryService;
     protected Vector<ScaleUser> scaleUserList;
-    static final int VENDOR_SPECIFIC_MAX_USERS = 8;
 
     public BluetoothStandardWeightProfile(Context context) {
         super(context);
@@ -87,6 +86,8 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
     public String driverName() {
         return "Bluetooth Standard Weight Profile";
     }
+
+    protected abstract int getVendorSpecificMaxUserCount();
 
     private enum SM_STEPS {
         START,
@@ -169,6 +170,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
             case REQUEST_VENDOR_SPECIFIC_USER_LIST:
                 scaleUserList.clear();
                 requestVendorSpecificUserList();
+                stopMachineState();
                 break;
             case REGISTER_NEW_SCALE_USER:
                 int userId = this.selectedUser.getId();
@@ -565,13 +567,9 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
         super.disconnect();
     }
 
-    protected void setNotifyVendorSpecificUserList() {
-        Timber.d("Set notify vendor user list not implemented!");
-    }
+    protected abstract void setNotifyVendorSpecificUserList();
 
-    protected void requestVendorSpecificUserList() {
-        Timber.d("Request vendor user list not implemented!");
-    }
+    protected abstract void requestVendorSpecificUserList();
 
     protected void registerUser(int consentCode) {
         BluetoothBytesParser parser = new BluetoothBytesParser(new byte[]{0,0,0});
@@ -793,15 +791,19 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
             scaleUser.setActivityLevel(Converters.ActivityLevel.fromInt(activityLevel - 1));
             scaleUser.setId(index);
             scaleUserList.add(scaleUser);
-            if (scaleUserList.size() == VENDOR_SPECIFIC_MAX_USERS) {
-                chooseExistingScaleUser(scaleUserList);
+            if (scaleUserList.size() == getVendorSpecificMaxUserCount()) {
+                if (getUserScaleIndex(selectedUser.getId()) == -1 || getUserScaleConsent(selectedUser.getId()) == -1)  {
+                    chooseExistingScaleUser(scaleUserList);
+                    return;
+                }
+                resumeMachineState();
             }
     }
 
     protected void chooseExistingScaleUser(Vector<ScaleUser> userList) {
         final DateFormat dateFormat = DateFormat.getDateInstance();
         int choicesCount = userList.size();
-        if (userList.size() < VENDOR_SPECIFIC_MAX_USERS) {
+        if (userList.size() < getVendorSpecificMaxUserCount()) {
             choicesCount = userList.size() + 1;
         }
         CharSequence[] choiceStrings = new String[choicesCount];
@@ -817,7 +819,7 @@ public class BluetoothStandardWeightProfile extends BluetoothCommunication {
                     + " " + context.getString(R.string.label_activity_level).toLowerCase() + ":" + (u.getActivityLevel().toInt() + 1);
             indexArray[i] = u.getId();
         }
-        if (userList.size() < VENDOR_SPECIFIC_MAX_USERS) {
+        if (userList.size() < getVendorSpecificMaxUserCount()) {
             choiceStrings[userList.size()] = context.getString(R.string.info_create_new_user_on_scale);
             indexArray[userList.size()] = -1;
         }
